@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Method 7 Review - Product Page Color Extraction</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f7; color: #1d1d1f; line-height: 1.6; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 24px; }
+
+  .hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); color: #fff; padding: 48px 40px; border-radius: 16px; margin-bottom: 32px; }
+  .hero h1 { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .hero .subtitle { font-size: 15px; color: #a0aec0; }
+
+  .stats-bar { display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+  .stat-card { flex: 1; min-width: 140px; background: #fff; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .stat-card .number { font-size: 32px; font-weight: 700; }
+  .stat-card .label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+  .stat-card.green .number { color: #059669; }
+  .stat-card.orange .number { color: #d97706; }
+  .stat-card.blue .number { color: #2563eb; }
+  .stat-card.purple .number { color: #7c3aed; }
+
+  .store-card { background: #fff; border-radius: 12px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); overflow: hidden; }
+  .store-header { display: flex; align-items: center; gap: 12px; padding: 16px 20px; cursor: pointer; user-select: none; transition: background 0.15s; }
+  .store-header:hover { background: #f8fafc; }
+  .store-header .chevron { width: 20px; height: 20px; transition: transform 0.2s; flex-shrink: 0; color: #9ca3af; }
+  .store-card.open .store-header .chevron { transform: rotate(90deg); }
+  .store-header .shop-name { font-weight: 600; font-size: 15px; flex: 1; }
+  .store-header .shop-link { font-size: 12px; color: #3b82f6; text-decoration: none; flex-shrink: 0; }
+  .store-header .shop-link:hover { text-decoration: underline; }
+
+  .store-badges { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+  .badge { font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.3px; }
+  .badge.complete { background: #d1fae5; color: #065f46; }
+  .badge.partial { background: #fef3c7; color: #92400e; }
+  .badge.ai-used { background: #ede9fe; color: #5b21b6; }
+
+  .store-body { display: none; padding: 0 20px 20px; }
+  .store-card.open .store-body { display: block; }
+
+  .brand-colors-card { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; }
+  .brand-colors-card h4 { font-size: 13px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .brand-colors-card h4 .phase-tag { font-size: 10px; padding: 2px 8px; border-radius: 4px; margin-left: 8px; vertical-align: middle; }
+  .brand-colors-card h4 .phase-tag.before { background: #e5e7eb; color: #374151; }
+  .brand-colors-card h4 .phase-tag.after { background: #ede9fe; color: #5b21b6; }
+  .brand-colors-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+  @media (max-width: 768px) { .brand-colors-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .brand-color-item { text-align: center; position: relative; }
+  .brand-color-swatch { width: 100%; height: 48px; border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 6px; position: relative; }
+  .brand-color-swatch.na-bg { background: #f3f4f6; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #9ca3af; }
+  .brand-color-swatch.transparent-bg { background: repeating-conic-gradient(#e5e7eb 0% 25%, #fff 0% 50%) 50% / 12px 12px; }
+  .brand-color-name { font-size: 11px; color: #6b7280; margin-bottom: 2px; }
+  .brand-color-hex { font-size: 12px; font-weight: 600; font-family: 'SF Mono', 'Fira Code', monospace; }
+
+  .ai-badge { display: inline-block; font-size: 8px; font-weight: 700; background: #7c3aed; color: #fff; padding: 1px 5px; border-radius: 3px; position: absolute; top: 2px; right: 2px; letter-spacing: 0.3px; z-index: 1; }
+
+  .preview-strip { display: flex; align-items: stretch; border-radius: 8px; overflow: hidden; height: 40px; margin-bottom: 16px; border: 1px solid #e5e7eb; }
+  .preview-strip .preview-btn { flex: 0 0 auto; padding: 8px 20px; font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+  .preview-strip .preview-bg { flex: 1; display: flex; align-items: center; padding: 0 16px; font-size: 13px; }
+  .preview-strip .preview-secondary { flex: 0 0 60px; }
+
+  .notes-line { font-size: 11px; color: #9ca3af; margin-bottom: 12px; }
+  .notes-line code { background: #f3f4f6; padding: 1px 5px; border-radius: 3px; font-size: 10px; }
+  .product-url { font-size: 12px; color: #6b7280; margin-bottom: 12px; word-break: break-all; }
+  .product-url a { color: #3b82f6; text-decoration: none; }
+  .product-url a:hover { text-decoration: underline; }
+
+  .screenshot-wrapper { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; max-height: 600px; overflow-y: auto; }
+  .screenshot-wrapper img { width: 100%; display: block; }
+
+  .legend { display: flex; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid #e5e7eb; }
+
+  .filter-tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .filter-tab { padding: 6px 14px; border-radius: 99px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #e5e7eb; background: #fff; transition: all 0.15s; }
+  .filter-tab:hover { border-color: #3b82f6; }
+  .filter-tab.active { background: #1a1a2e; color: #fff; border-color: #1a1a2e; }
+
+  .section-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; color: #1a1a2e; }
+
+  .header-swatches { display: flex; gap: 3px; align-items: center; flex-shrink: 0; }
+  .header-swatch { width: 20px; height: 20px; border-radius: 4px; border: 1px solid #e5e7eb; }
+
+  .candidates-card { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; }
+  .candidates-card h4 { font-size: 13px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+  .candidates-table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  .candidates-table th { text-align: left; padding: 6px 8px; color: #6b7280; font-weight: 600; border-bottom: 1px solid #e5e7eb; }
+  .candidates-table td { padding: 6px 8px; border-bottom: 1px solid #f3f4f6; }
+  .candidates-table .cand-swatch { width: 24px; height: 24px; border-radius: 4px; border: 1px solid #e5e7eb; display: inline-block; vertical-align: middle; margin-right: 6px; }
+  .candidates-table .winner td { background: #f0fdf4; font-weight: 600; }
+  .candidates-table .score-bar { display: inline-block; height: 6px; border-radius: 3px; background: #3b82f6; }
+  .no-candidates { font-size: 12px; color: #9ca3af; font-style: italic; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <h1>Method 7: Product Page Color Extraction</h1>
+    <p class="subtitle">Approach B &mdash; Deterministic scoring + Gemini AI for missing colors</p>
+  </div>
+
+  <div class="stats-bar">
+    <div class="stat-card green"><div class="number">8</div><div class="label">Deterministic Complete</div></div>
+    <div class="stat-card purple"><div class="number">16</div><div class="label">Used AI</div></div>
+    <div class="stat-card blue"><div class="number">24</div><div class="label">Total Stores</div></div>
+    <div class="stat-card green"><div class="number">97/120</div><div class="label">Before AI (81%)</div></div>
+    <div class="stat-card green"><div class="number">120/120</div><div class="label">After AI (100%)</div></div>
+  </div>
+
+  <div class="section-title">Brand Color Results per Store</div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#059669"></div> Deterministic (from page)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> AI-filled (Gemini)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#9ca3af"></div> Missing (before AI)</div>
+  </div>
+
+  <div class="filter-tabs">
+    <div class="filter-tab active" onclick="filterStores('all')">All (24)</div>
+    <div class="filter-tab" onclick="filterStores('deterministic')">Deterministic (8)</div>
+    <div class="filter-tab" onclick="filterStores('used-ai')">Used AI (16)</div>
+  </div>
+
+  <div id="stores-container"></div>
+</div>
+
+<script>
+const stores = [{"shop":"86xcrs-tn.myshopify.com","productUrl":"https://86xcrs-tn.myshopify.com/products/ivyclip-kopie","finalUrl":"https://ivyclip.com/products/ivyclip-kopie","brandColorsBefore":{"primaryColor":"transparent","buttonTextColor":"#50463e","primaryTextColor":"#50463e","secondaryColor":null,"productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#d9c8d2","buttonTextColor":"#50463e","primaryTextColor":"#50463e","secondaryColor":"#584450","productBackground":"#ffffff"},"aiFilled":["primaryColor","secondaryColor"],"confidence":{"primaryColor":"low","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["primary-transparent","secondary-not-found"],"elementCount":94},{"shop":"all-in-suppliments.myshopify.com","productUrl":"https://all-in-suppliments.myshopify.com/products/ghk-cu-vial-100-mg","finalUrl":"https://www.allinsupps.com/products/ghk-cu-vial-100-mg","brandColorsBefore":{"primaryColor":"transparent","buttonTextColor":"#414141","primaryTextColor":"#414141","secondaryColor":"#e5ceaf","productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#777c75","buttonTextColor":"#414141","primaryTextColor":"#414141","secondaryColor":"#e5ceaf","productBackground":"#ffffff"},"aiFilled":["primaryColor"],"confidence":{"primaryColor":"low","overall":"partial"},"secondarySource":"footer","secondaryCandidates":[{"color":"#e5ceaf","source":"footer","score":0.611}],"notes":["primary-transparent"],"elementCount":85},{"shop":"bellavita-bangladesh.myshopify.com","productUrl":"https://bellavita-bangladesh.myshopify.com/products/the-velvet-oud-duo","finalUrl":"https://bellavitaluxe.com/products/the-velvet-oud-duo","brandColorsBefore":{"primaryColor":"#171615","buttonTextColor":"#ffffff","primaryTextColor":"#212326","secondaryColor":null,"productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#171615","buttonTextColor":"#ffffff","primaryTextColor":"#212326","secondaryColor":"#8b4513","productBackground":"#ffffff"},"aiFilled":["secondaryColor"],"confidence":{"primaryColor":"high","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["secondary-not-found"],"elementCount":208},{"shop":"bombtech-golf.myshopify.com","productUrl":"https://bombtech-golf.myshopify.com/products/bombtech-golf-wedge-black-individual-replacement","finalUrl":"https://www.bombtechgolf.com/products/bombtech-golf-wedge-black-individual-replacement","brandColorsBefore":{"primaryColor":"#2a3d35","buttonTextColor":"#fcfbf9","primaryTextColor":"#f9f8e4","secondaryColor":"#4ffc6c","productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#2a3d35","buttonTextColor":"#fcfbf9","primaryTextColor":"#f9f8e4","secondaryColor":"#4ffc6c","productBackground":"#ffffff"},"aiFilled":[],"confidence":{"primaryColor":"high","overall":"complete"},"secondarySource":"announcement","secondaryCandidates":[{"color":"#4ffc6c","source":"announcement","score":0.9}],"notes":[],"elementCount":132},{"shop":"bulldog-gear.myshopify.com","productUrl":"https://bulldog-gear.myshopify.com/products/bulldog-gear-nemesis-dual-cable-adjustable-pulley-machine-functional-trainer-x2-100kg-stacks","finalUrl":"https://bulldoggear.com/products/bulldog-gear-nemesis-dual-cable-adjustable-pulley-machine-functional-trainer-x2-100kg-stacks","brandColorsBefore":{"primaryColor":"#3cb4e5","buttonTextColor":"#ffffff","primaryTextColor":"#222222","secondaryColor":null,"productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#3cb4e5","buttonTextColor":"#ffffff","primaryTextColor":"#222222","secondaryColor":"#232323","productBackground":"#ffffff"},"aiFilled":["secondaryColor"],"confidence":{"primaryColor":"high","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["secondary-not-found"],"elementCount":130},{"shop":"coldcaseicecream.myshopify.com","productUrl":"https://coldcaseicecream.myshopify.com/products/butterfly-spoon","finalUrl":"https://www.coldcaseicecream.com/products/butterfly-spoon","brandColorsBefore":{"primaryColor":"#ffbe45","buttonTextColor":"#0b0b0b","primaryTextColor":"#ffffff","secondaryColor":"#0000ee","productBackground":"#0b0b0b"},"brandColorsAfter":{"primaryColor":"#ffbe45","buttonTextColor":"#0b0b0b","primaryTextColor":"#ffffff","secondaryColor":"#0000ee","productBackground":"#0b0b0b"},"aiFilled":[],"confidence":{"primaryColor":"high","overall":"complete"},"secondarySource":"link-color","secondaryCandidates":[{"color":"#0000ee","source":"link-color","score":0.72}],"notes":[],"elementCount":83},{"shop":"dazzledrywholesaledev.myshopify.com","productUrl":"https://dazzledrywholesaledev.myshopify.com/products/memory-lane","finalUrl":"https://pro.dazzledry.com/products/memory-lane","brandColorsBefore":{"primaryColor":null,"buttonTextColor":null,"primaryTextColor":"#242429","secondaryColor":"#DBE34A","productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#242429","buttonTextColor":"#ffffff","primaryTextColor":"#242429","secondaryColor":"#DBE34A","productBackground":"#ffffff"},"aiFilled":["primaryColor","buttonTextColor"],"confidence":{"primaryColor":"none","overall":"partial"},"secondarySource":"css-var(--secondary-color)","secondaryCandidates":[{"color":"#DBE34A","source":"css-var(--secondary-color)","score":0.88}],"notes":["no-atc"],"elementCount":101},{"shop":"dryfarmwines.myshopify.com","productUrl":"https://dryfarmwines.myshopify.com/products/spanish-sparkling","finalUrl":"https://www.dryfarmwines.com/products/spanish-sparkling","brandColorsBefore":{"primaryColor":"#222222","buttonTextColor":"#ffffff","primaryTextColor":"#222222","secondaryColor":null,"productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#222222","buttonTextColor":"#ffffff","primaryTextColor":"#222222","secondaryColor":"#a0a0a0","productBackground":"#ffffff"},"aiFilled":["secondaryColor"],"confidence":{"primaryColor":"high","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["secondary-not-found"],"elementCount":125},{"shop":"elorea.myshopify.com","productUrl":"https://elorea.myshopify.com/products/mosi-moon-jar","finalUrl":"https://elorea.myshopify.com/products/mosi-moon-jar","brandColorsBefore":{"primaryColor":null,"buttonTextColor":null,"primaryTextColor":"#212121","secondaryColor":null,"productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#282c2e","buttonTextColor":"#ffffff","primaryTextColor":"#212121","secondaryColor":"#3A4A5A","productBackground":"#ffffff"},"aiFilled":["primaryColor","buttonTextColor","secondaryColor"],"confidence":{"primaryColor":"none","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["no-atc","secondary-not-found"],"elementCount":78},{"shop":"gimberdrink.myshopify.com","productUrl":"https://gimberdrink.myshopify.com/products/ginger-peach-ginseng-drink-1","finalUrl":"https://gimber.com/products/ginger-peach-ginseng-drink-1","brandColorsBefore":{"primaryColor":"#fab81c","buttonTextColor":"#000000","primaryTextColor":"#000000","secondaryColor":null,"productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#fab81c","buttonTextColor":"#000000","primaryTextColor":"#000000","secondaryColor":"#111111","productBackground":"#ffffff"},"aiFilled":["secondaryColor"],"confidence":{"primaryColor":"high","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["secondary-not-found"],"elementCount":204},{"shop":"hewouldlovefirst.myshopify.com","productUrl":"https://hewouldlovefirst.myshopify.com/products/build-your-own-50-off-bundle-qqdw8","finalUrl":"https://hewouldlovefirst.com/","brandColorsBefore":{"primaryColor":null,"buttonTextColor":null,"primaryTextColor":"#000000","secondaryColor":"#0c98d7","productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#000000","buttonTextColor":"#ffffff","primaryTextColor":"#000000","secondaryColor":"#0c98d7","productBackground":"#ffffff"},"aiFilled":["primaryColor","buttonTextColor"],"confidence":{"primaryColor":"none","overall":"partial"},"secondarySource":"sale-price","secondaryCandidates":[{"color":"#0c98d7","source":"sale-price","score":0.56}],"notes":["no-atc"],"elementCount":122},{"shop":"hygienelab.myshopify.com","productUrl":"https://hygienelab.myshopify.com/products/face-and-body-mineral-sunscreen","finalUrl":"https://www.hygienelab.com/products/face-and-body-mineral-sunscreen","brandColorsBefore":{"primaryColor":"#565c4f","buttonTextColor":"#ffffff","primaryTextColor":"#000000","secondaryColor":"#6c7463","productBackground":"#f3eeea"},"brandColorsAfter":{"primaryColor":"#565c4f","buttonTextColor":"#ffffff","primaryTextColor":"#000000","secondaryColor":"#6c7463","productBackground":"#f3eeea"},"aiFilled":[],"confidence":{"primaryColor":"high","overall":"complete"},"secondarySource":"announcement","secondaryCandidates":[{"color":"#6c7463","source":"announcement","score":0.523},{"color":"#2c3e50","source":"input-border","score":0.413}],"notes":[],"elementCount":326},{"shop":"jawliner.myshopify.com","productUrl":"https://jawliner.myshopify.com/products/free-gift-medium-gum-watermelon","finalUrl":"https://jawliner.com/products/free-gift-medium-gum-watermelon","brandColorsBefore":{"primaryColor":"#000000","buttonTextColor":"#ffffff","primaryTextColor":"#1c1b1b","secondaryColor":null,"productBackground":"#f8f7f1"},"brandColorsAfter":{"primaryColor":"#000000","buttonTextColor":"#ffffff","primaryTextColor":"#1c1b1b","secondaryColor":"#eef5bf","productBackground":"#f8f7f1"},"aiFilled":["secondaryColor"],"confidence":{"primaryColor":"high","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["secondary-not-found"],"elementCount":91},{"shop":"loaded-dryer-sheets.myshopify.com","productUrl":"https://loaded-dryer-sheets.myshopify.com/products/build-your-own-bundle","finalUrl":"https://smellmyload.com/products/build-your-own-bundle?source=pageEmbed&page=addProductsPage1&currentFlow=byob","brandColorsBefore":{"primaryColor":null,"buttonTextColor":null,"primaryTextColor":"#000000","secondaryColor":null,"productBackground":"#fbf8f2"},"brandColorsAfter":{"primaryColor":"#000000","buttonTextColor":"#ffffff","primaryTextColor":"#000000","secondaryColor":"#e0f2f7","productBackground":"#fbf8f2"},"aiFilled":["primaryColor","buttonTextColor","secondaryColor"],"confidence":{"primaryColor":"none","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["no-atc","secondary-not-found"],"elementCount":69},{"shop":"minimalistinc.myshopify.com","productUrl":"https://minimalistinc.myshopify.com/products/\ud83c\udf81-minimalist-b12-repair-complex-5-5-face-moisturizer-10g","finalUrl":"https://beminimalist.co/","brandColorsBefore":{"primaryColor":"#000000","buttonTextColor":"#ffffff","primaryTextColor":"#000000","secondaryColor":null,"productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#000000","buttonTextColor":"#ffffff","primaryTextColor":"#000000","secondaryColor":"#d9d8d7","productBackground":"#ffffff"},"aiFilled":["secondaryColor"],"confidence":{"primaryColor":"high","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["secondary-not-found"],"elementCount":272},{"shop":"oatsome.myshopify.com","productUrl":"https://oatsome.myshopify.com/products/golden-hazel-multipack","finalUrl":"https://oatsome.myshopify.com/products/golden-hazel-multipack","brandColorsBefore":{"primaryColor":"#76a576","buttonTextColor":"#ffffff","primaryTextColor":"#303030","secondaryColor":"#db3249","productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#76a576","buttonTextColor":"#ffffff","primaryTextColor":"#303030","secondaryColor":"#db3249","productBackground":"#ffffff"},"aiFilled":[],"confidence":{"primaryColor":"high","overall":"complete"},"secondarySource":"footer","secondaryCandidates":[{"color":"#db3249","source":"footer","score":0.9},{"color":"#e8374f","source":"link-color","score":0.81},{"color":"#e8374f","source":"sale-price","score":0.63}],"notes":[],"elementCount":197},{"shop":"olive-and-june.myshopify.com","productUrl":"https://olive-and-june.myshopify.com/products/hd-gel-system","finalUrl":"https://oliveandjune.com/products/hd-gel-system","brandColorsBefore":{"primaryColor":"#ffffff","buttonTextColor":"#595a5b","primaryTextColor":"#595a5b","secondaryColor":null,"productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#ffffff","buttonTextColor":"#595a5b","primaryTextColor":"#595a5b","secondaryColor":"#feebf3","productBackground":"#ffffff"},"aiFilled":["secondaryColor"],"confidence":{"primaryColor":"high","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["secondary-not-found"],"elementCount":116},{"shop":"qallo.myshopify.com","productUrl":"https://qallo.myshopify.com/products/vitamins-starter-pack","finalUrl":"https://qallo.com/nl-be/products/vitamins-starter-pack","brandColorsBefore":{"primaryColor":"#ff6b35","buttonTextColor":"#ffffff","primaryTextColor":"#111111","secondaryColor":"#20304f","productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#ff6b35","buttonTextColor":"#ffffff","primaryTextColor":"#111111","secondaryColor":"#20304f","productBackground":"#ffffff"},"aiFilled":[],"confidence":{"primaryColor":"high","overall":"complete"},"secondarySource":"link-color","secondaryCandidates":[{"color":"#20304f","source":"link-color","score":0.808},{"color":"#20304f","source":"input-border","score":0.449}],"notes":[],"elementCount":167},{"shop":"remedy-skinpedia.myshopify.com","productUrl":"https://remedy-skinpedia.myshopify.com/products/gel-cream-moisturizer-travel-size","finalUrl":"https://remedyskin.com/products/gel-cream-moisturizer-travel-size","brandColorsBefore":{"primaryColor":"#f1cf79","buttonTextColor":"#1b3153","primaryTextColor":"#1b3153","secondaryColor":null,"productBackground":"#eff5f6"},"brandColorsAfter":{"primaryColor":"#f1cf79","buttonTextColor":"#1b3153","primaryTextColor":"#1b3153","secondaryColor":"#1b3153","productBackground":"#eff5f6"},"aiFilled":["secondaryColor"],"confidence":{"primaryColor":"high","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["secondary-not-found"],"elementCount":82},{"shop":"savage-jerky-co.myshopify.com","productUrl":"https://savage-jerky-co.myshopify.com/products/dynamic-bundle","finalUrl":"https://savagejerky.com/products/dynamic-bundle","brandColorsBefore":{"primaryColor":"#c76823","buttonTextColor":"#ffffff","primaryTextColor":"#ffffff","secondaryColor":"#860001","productBackground":"#000000"},"brandColorsAfter":{"primaryColor":"#c76823","buttonTextColor":"#ffffff","primaryTextColor":"#ffffff","secondaryColor":"#860001","productBackground":"#000000"},"aiFilled":[],"confidence":{"primaryColor":"high","overall":"complete"},"secondarySource":"sale-price","secondaryCandidates":[{"color":"#860001","source":"sale-price","score":0.63}],"notes":[],"elementCount":197},{"shop":"sunlu3d.myshopify.com","productUrl":"https://sunlu3d.myshopify.com/products/usa-only-3d-printing-special-offers-collection-clearance-sales","finalUrl":"https://sunlu3d.myshopify.com/products/usa-only-3d-printing-special-offers-collection-clearance-sales?source=pageEmbed&page=addProductsPage1&currentFlow=byob","brandColorsBefore":{"primaryColor":"#009ca6","buttonTextColor":"#ffffff","primaryTextColor":"#333333","secondaryColor":"#ca4141","productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#009ca6","buttonTextColor":"#ffffff","primaryTextColor":"#333333","secondaryColor":"#ca4141","productBackground":"#ffffff"},"aiFilled":[],"confidence":{"primaryColor":"high","overall":"complete"},"secondarySource":"sale-price","secondaryCandidates":[{"color":"#ca4141","source":"sale-price","score":0.63}],"notes":[],"elementCount":215},{"shop":"tastyflavours.myshopify.com","productUrl":"https://tastyflavours.myshopify.com/products/dynamite-chicken-noodles","finalUrl":"https://tasty-flavours.nl/products/dynamite-chicken-noodles","brandColorsBefore":{"primaryColor":"transparent","buttonTextColor":"#ffffff","primaryTextColor":"#ffffff","secondaryColor":"#d50000","productBackground":"#000000"},"brandColorsAfter":{"primaryColor":"#d50000","buttonTextColor":"#ffffff","primaryTextColor":"#ffffff","secondaryColor":"#d50000","productBackground":"#000000"},"aiFilled":["primaryColor"],"confidence":{"primaryColor":"low","overall":"partial"},"secondarySource":"sale-price","secondaryCandidates":[{"color":"#d50000","source":"sale-price","score":0.56},{"color":"#dd26ff","source":"element-class","score":0.48}],"notes":["primary-transparent"],"elementCount":118},{"shop":"togetheratamazonml.myshopify.com","productUrl":"https://togetheratamazonml.myshopify.com/products/japan-together-at-amazon-unisex-staple-t-shirt-v4","finalUrl":"https://togetheratamazon.merchloop.com/products/japan-together-at-amazon-unisex-staple-t-shirt-v4","brandColorsBefore":{"primaryColor":"#ffffff","buttonTextColor":"#333e48","primaryTextColor":"#333e48","secondaryColor":null,"productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#ffffff","buttonTextColor":"#333e48","primaryTextColor":"#333e48","secondaryColor":"#ff9900","productBackground":"#ffffff"},"aiFilled":["secondaryColor"],"confidence":{"primaryColor":"high","overall":"partial"},"secondarySource":"none","secondaryCandidates":[],"notes":["secondary-not-found"],"elementCount":75},{"shop":"zsg3q7-k4.myshopify.com","productUrl":"https://zsg3q7-k4.myshopify.com/products/fasta-burrst-35000-creamy-series-special-edition-disposable-device-35000-puffs","finalUrl":"https://bestvape.com/products/fasta-burrst-35000-creamy-series-special-edition-disposable-device-35000-puffs","brandColorsBefore":{"primaryColor":"#3538d1","buttonTextColor":"#ffffff","primaryTextColor":"#1d1d1d","secondaryColor":"#0000ee","productBackground":"#ffffff"},"brandColorsAfter":{"primaryColor":"#3538d1","buttonTextColor":"#ffffff","primaryTextColor":"#1d1d1d","secondaryColor":"#0000ee","productBackground":"#ffffff"},"aiFilled":[],"confidence":{"primaryColor":"high","overall":"complete"},"secondarySource":"link-color","secondaryCandidates":[{"color":"#0000ee","source":"link-color","score":0.81},{"color":"#f04f36","source":"sale-price","score":0.63}],"notes":[],"elementCount":149}];
+
+const COLOR_META = {
+  primaryColor:     { name: 'Primary Color',     desc: 'Buttons, CTAs' },
+  buttonTextColor:  { name: 'Button Text',       desc: 'Text on buttons' },
+  primaryTextColor: { name: 'Primary Text',      desc: 'Titles, prices' },
+  secondaryColor:   { name: 'Secondary Color',   desc: 'Accent, inactive' },
+  productBackground:{ name: 'Product BG',        desc: 'Product cards' },
+};
+
+function swatchHTML(color, key, isAI) {
+  const meta = COLOR_META[key];
+  const isNA = !color || color === 'null' || color === 'none';
+  const isTrans = color === 'transparent';
+
+  let swatchClass = 'brand-color-swatch';
+  let bg = '';
+  let inner = '';
+
+  if (isNA) { swatchClass += ' na-bg'; inner = 'N/A'; }
+  else if (isTrans) { swatchClass += ' transparent-bg'; }
+  else { bg = `background:${color}`; }
+
+  const aiBadge = isAI ? '<span class="ai-badge">AI</span>' : '';
+
+  return `<div class="brand-color-item">
+    ${aiBadge}
+    <div class="${swatchClass}" style="${bg}">${inner}</div>
+    <div class="brand-color-name">${meta.name}</div>
+    <div class="brand-color-hex">${isNA ? '---' : color}</div>
+  </div>`;
+}
+
+function previewStripHTML(bc) {
+  const primary = bc.primaryColor && bc.primaryColor !== 'transparent' ? bc.primaryColor : '#ccc';
+  const btnText = bc.buttonTextColor || '#fff';
+  const prodBg = bc.productBackground || '#fff';
+  const primText = bc.primaryTextColor || '#000';
+  const secondary = bc.secondaryColor || '#ddd';
+  return `<div class="preview-strip">
+    <div class="preview-btn" style="background:${primary};color:${btnText}">Add to Cart</div>
+    <div class="preview-bg" style="background:${prodBg};color:${primText}">Product Title &mdash; $29.99</div>
+    <div class="preview-secondary" style="background:${secondary}" title="Secondary"></div>
+  </div>`;
+}
+
+function candidatesHTML(candidates) {
+  if (!candidates || candidates.length === 0) return '';
+  const maxScore = Math.max(...candidates.map(c => c.score));
+  const rows = candidates.map((c, i) => {
+    const isWinner = i === 0;
+    const barWidth = Math.round((c.score / maxScore) * 80);
+    return `<tr class="${isWinner ? 'winner' : ''}">
+      <td><span class="cand-swatch" style="background:${c.color}"></span>${c.color}</td>
+      <td>${c.source}</td>
+      <td><span class="score-bar" style="width:${barWidth}px"></span> ${c.score.toFixed(3)}</td>
+    </tr>`;
+  }).join('');
+  return `<div class="candidates-card">
+    <h4>Secondary Candidates (scored)</h4>
+    <table class="candidates-table">
+      <thead><tr><th>Color</th><th>Source</th><th>Score</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function colorsGridHTML(colors, aiFilled, label, phaseClass) {
+  const keys = ['primaryColor','buttonTextColor','primaryTextColor','secondaryColor','productBackground'];
+  return `<div class="brand-colors-card">
+    <h4>${label} <span class="phase-tag ${phaseClass}">${phaseClass === 'before' ? 'Deterministic' : 'Deterministic + AI'}</span></h4>
+    <div class="brand-colors-grid">
+      ${keys.map(k => swatchHTML(colors[k], k, aiFilled.includes(k))).join('')}
+    </div>
+  </div>`;
+}
+
+function renderStores(filter) {
+  const container = document.getElementById('stores-container');
+  container.innerHTML = '';
+
+  const filtered = filter === 'all' ? stores :
+    filter === 'deterministic' ? stores.filter(s => s.aiFilled.length === 0) :
+    stores.filter(s => s.aiFilled.length > 0);
+
+  filtered.forEach(s => {
+    const usedAI = s.aiFilled.length > 0;
+    const displayName = s.shop.replace('.myshopify.com', '');
+    const storeUrl = s.finalUrl || s.productUrl;
+    const screenshotPath = `${s.shop}/method7_screenshot.png`;
+
+    // Header mini-swatches (after AI)
+    const keys = ['primaryColor','buttonTextColor','primaryTextColor','secondaryColor','productBackground'];
+    const miniSwatches = keys.map(k => {
+      const c = s.brandColorsAfter[k];
+      if (!c || c === 'transparent') return `<div class="header-swatch" style="background:repeating-conic-gradient(#e5e7eb 0% 25%, #fff 0% 50%) 50% / 8px 8px"></div>`;
+      return `<div class="header-swatch" style="background:${c}"></div>`;
+    }).join('');
+
+    const card = document.createElement('div');
+    card.className = 'store-card';
+
+    const badges = usedAI
+      ? '<span class="badge ai-used">Used AI</span>'
+      : '<span class="badge complete">Deterministic</span>';
+
+    card.innerHTML = `
+      <div class="store-header" onclick="this.parentElement.classList.toggle('open')">
+        <svg class="chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd"/></svg>
+        <span class="shop-name">${displayName}</span>
+        <div class="header-swatches">${miniSwatches}</div>
+        <div class="store-badges">${badges}</div>
+        <a class="shop-link" href="${storeUrl}" target="_blank" onclick="event.stopPropagation()">Visit &rarr;</a>
+      </div>
+      <div class="store-body">
+        <div class="product-url">Product: <a href="${s.productUrl}" target="_blank">${s.productUrl}</a></div>
+        ${s.notes.length ? `<div class="notes-line">Notes: ${s.notes.map(n => '<code>' + n + '</code>').join(' ')}</div>` : ''}
+
+        ${colorsGridHTML(s.brandColorsBefore, [], 'Before AI', 'before')}
+        ${usedAI ? colorsGridHTML(s.brandColorsAfter, s.aiFilled, 'After AI', 'after') : ''}
+        ${usedAI ? previewStripHTML(s.brandColorsAfter) : previewStripHTML(s.brandColorsBefore)}
+        ${candidatesHTML(s.secondaryCandidates)}
+
+        <div class="screenshot-wrapper">
+          <img src="${screenshotPath}" alt="Screenshot of ${displayName}" loading="lazy" />
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
+
+function filterStores(filter) {
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  event.target.classList.add('active');
+  renderStores(filter);
+}
+
+renderStores('all');
+</script>
+</body>
+</html>
